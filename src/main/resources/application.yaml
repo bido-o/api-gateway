@@ -7,8 +7,8 @@ spring:
   cloud:
     gateway:
       routes:
-        - id: auth
-          uri: ${AUTH_SERVICE_URL:http://localhost:8081}
+        - id: auth-route
+          uri: ${AUTH_SERVICE_URL}
           predicates:
             - Path=/api/auth/**
 
