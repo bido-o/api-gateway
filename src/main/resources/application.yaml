@@ -6,16 +6,18 @@ spring:
     name: api-gateway
   cloud:
     gateway:
-      routes:
-        - id: auth-route
-          uri: ${AUTH_SERVICE_URL:http://auth-container:8081}
-          predicates:
-            - Path=/api/auth/**
+      server:
+        webflux:
+          routes:
+            - id: auth-route
+              uri: ${AUTH_SERVICE_URL}
+              predicates:
+                - Path=/api/auth/**
 
-        - id: google-route
-          uri: https://www.google.com
-          predicates:
-            - Path=/google/**
+            - id: google-route
+              uri: https://www.google.com
+              predicates:
+                - Path=/**
 
 logging:
   level:
