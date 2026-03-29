@@ -17,3 +17,6 @@ spring:
 logging:
   level:
     org.springframework.cloud.gateway: TRACE
+
+jwt:
+  secret: ${JWT_SECRET_KEY}
