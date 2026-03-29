@@ -8,9 +8,14 @@ spring:
     gateway:
       routes:
         - id: auth-route
-          uri: ${AUTH_SERVICE_URL}
+          uri: ${AUTH_SERVICE_URL:http://auth-container:8081}
           predicates:
             - Path=/api/auth/**
+
+        - id: google-route
+          uri: https://www.google.com
+          predicates:
+            - Path=/google/**
 
 logging:
   level:
