@@ -14,11 +14,6 @@ spring:
               predicates:
                 - Path=/api/auth/**
 
-            - id: google-route
-              uri: https://www.google.com
-              predicates:
-                - Path=/**
-
 logging:
   level:
     org.springframework.cloud.gateway: TRACE
