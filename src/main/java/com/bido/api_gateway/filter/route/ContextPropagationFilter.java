@@ -14,6 +14,7 @@ public class ContextPropagationFilter extends AbstractGatewayFilterFactory<Conte
         super(Config.class);
     }
 
+    //TODO: review apply
     @Override
     public GatewayFilter apply(Config config) {
         return (exchange, chain) -> {

@@ -22,6 +22,7 @@ public class JwtValidationFilter extends AbstractGatewayFilterFactory<JwtValidat
         //this.errorHandler = errorHandler; //TODO: review
     }
 
+    //TODO: review apply
     @Override
     public GatewayFilter apply(Config config) {
         return (exchange, chain) -> {
