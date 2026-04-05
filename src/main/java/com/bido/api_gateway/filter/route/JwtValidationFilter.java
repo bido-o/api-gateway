@@ -2,6 +2,7 @@ package com.bido.api_gateway.filter.route;
 
 import com.bido.api_gateway.util.JwtValidator;
 import io.jsonwebtoken.Claims;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.http.HttpHeaders;
@@ -15,14 +16,13 @@ public class JwtValidationFilter extends AbstractGatewayFilterFactory<JwtValidat
     private final JwtValidator jwtValidator;
     //private final JwtErrorHandler errorHandler;
 
-    //@Autowired
+    @Autowired
     public JwtValidationFilter(JwtValidator jwtValidator) {
         super(Config.class);
         this.jwtValidator = jwtValidator;
         //this.errorHandler = errorHandler; //TODO: review
     }
 
-    //TODO: review apply
     @Override
     public GatewayFilter apply(Config config) {
         return (exchange, chain) -> {
