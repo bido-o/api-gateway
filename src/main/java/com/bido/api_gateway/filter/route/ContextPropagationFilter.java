@@ -2,6 +2,7 @@ package com.bido.api_gateway.filter.route;
 
 import io.jsonwebtoken.Claims;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.http.HttpStatus;
@@ -17,8 +18,9 @@ public class ContextPropagationFilter extends AbstractGatewayFilterFactory<Conte
         super(Config.class);
     }
 
+    @NonNull
     @Override
-    public GatewayFilter apply(Config config) {
+    public GatewayFilter apply(@NonNull Config config) {
         return (exchange, chain) -> {
             Claims claims = exchange.getAttribute("authenticatedClaims");
 

@@ -2,6 +2,7 @@ package com.bido.api_gateway.filter.route;
 
 import com.bido.api_gateway.util.JwtValidator;
 import io.jsonwebtoken.Claims;
+import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
@@ -23,8 +24,9 @@ public class JwtValidationFilter extends AbstractGatewayFilterFactory<JwtValidat
         //this.errorHandler = errorHandler; //TODO: review
     }
 
+    @NonNull
     @Override
-    public GatewayFilter apply(Config config) {
+    public GatewayFilter apply(@NonNull Config config) {
         return (exchange, chain) -> {
             //log.debug("Execut JwtValidation pentru ruta: ", exchange.getRequest().getURI().getPath());
 
