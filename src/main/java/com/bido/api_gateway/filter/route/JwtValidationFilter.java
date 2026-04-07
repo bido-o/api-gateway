@@ -2,6 +2,7 @@ package com.bido.api_gateway.filter.route;
 
 import com.bido.api_gateway.util.JwtValidator;
 import io.jsonwebtoken.Claims;
+import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
@@ -9,9 +10,9 @@ import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFac
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
-import org.springframework.web.server.ServerWebExchange;
-import reactor.core.publisher.Mono;
+import org.springframework.web.server.ResponseStatusException;
 
+@Slf4j
 @Component
 public class JwtValidationFilter extends AbstractGatewayFilterFactory<JwtValidationFilter.Config> {
     private final JwtValidator jwtValidator;
@@ -28,29 +29,30 @@ public class JwtValidationFilter extends AbstractGatewayFilterFactory<JwtValidat
     @Override
     public GatewayFilter apply(@NonNull Config config) {
         return (exchange, chain) -> {
-            //log.debug("Execut JwtValidation pentru ruta: ", exchange.getRequest().getURI().getPath());
+            String path = exchange.getRequest().getURI().getPath();
+            log.debug("Execut JwtValidation pentru ruta: {}", path);
 
             String authHeader = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
 
             if(authHeader == null) {
-                //log.warn("Security Alert: Lipseste complet header-ul Authorization");
-                return onError(exchange, HttpStatus.UNAUTHORIZED);
+                log.warn("Acces refuzat: Lipsește header-ul Authorization pe ruta {}", path);
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Header Authorization lipsă");
             }
 
             if(!authHeader.startsWith("Bearer ")) {
-                //log.warn("Security Alert: Header-ul Authorization exista, dar nu respecta formatul 'Bearer ' (cu spatiu dupa)");
-                return onError(exchange, HttpStatus.UNAUTHORIZED);
+                log.warn("Acces refuzat: Format invalid. Header-ul Authorization exista, dar nu respecta formatul 'Bearer ' (cu spatiu dupa) pe ruta {}", path);
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Format token invalid");
             }
 
             String token = authHeader.substring(7);
 
-            // TODO: exception handling
             try {
                 Claims claims = jwtValidator.extractAllClaims(token);
+                log.info("Token validat cu succes pentru UserID: {}", claims.getSubject());
                 exchange.getAttributes().put("authenticatedClaims", claims);
             } catch (Exception e) {
-                //log.error("Token invalid sau expirat: " , e.getMessage());
-                return onError(exchange, HttpStatus.UNAUTHORIZED);
+                log.error("Token invalid sau expirat: {}" , e.getMessage());
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token invalid sau expirat");
                 //return errorHandler.handle(exchange, e);
             }
 
@@ -58,11 +60,11 @@ public class JwtValidationFilter extends AbstractGatewayFilterFactory<JwtValidat
         };
     }
 
-    //TODO: move method to JwtErrorHandler
-    private Mono<Void> onError(ServerWebExchange exchange, HttpStatus httpStatus) {
-        exchange.getResponse().setStatusCode(httpStatus);
-        return exchange.getResponse().setComplete();
-    }
+//    //TODO: move method to JwtErrorHandler
+//    private Mono<Void> onError(ServerWebExchange exchange, HttpStatus httpStatus) {
+//        exchange.getResponse().setStatusCode(httpStatus);
+//        return exchange.getResponse().setComplete();
+//    }
 
     public static class Config {}
 }
