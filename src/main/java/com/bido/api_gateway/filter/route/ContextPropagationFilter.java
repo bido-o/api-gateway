@@ -34,6 +34,7 @@ public class ContextPropagationFilter extends AbstractGatewayFilterFactory<Conte
 
             if (userId == null || userId.trim().isEmpty()) {
                 log.error("Token fără Subject (User ID)! Verifică Auth Service.");
+                //TODO: review exceptii in clasa asta
                 throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Autentificare invalidă. Lipsește identitatea.");
             }
 
