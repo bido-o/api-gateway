@@ -42,24 +42,26 @@ public class GlobalExceptionHandler extends AbstractErrorWebExceptionHandler {
 
     private Mono<ServerResponse> renderErrorResponse(ServerRequest serverRequest) {
         Throwable error = getError(serverRequest);
-        String safeErrorMessage = (error != null && error.getMessage() != null)
+
+        String internalErrorMessage = (error != null && error.getMessage() != null)
                                     ? error.getMessage()
                                     : "Eroare fără mesaj";
 
         Map<String, Object> errorPropertiesMap = getErrorAttributes(serverRequest, ErrorAttributeOptions.defaults());
         HttpStatus status = determineHttpStatus(error);
+        String exceptionType = (error != null)
+                                ? error.getClass().getSimpleName()
+                                : "UnknownException";
 
         errorPropertiesMap.put("status", status.value());
         errorPropertiesMap.put("error", status.getReasonPhrase());
         errorPropertiesMap.remove("requestId");
 
-        if (status.is5xxServerError()) {
-            log.error("SERVER ERROR [{}] la ruta {}: {}", status.value(), serverRequest.path(), safeErrorMessage, error);
-            errorPropertiesMap.put("message", "Eroare internă de server.");
-        } else {
-            log.warn("CLIENT ERROR [{}] la ruta {}: {}", status.value(), serverRequest.path(), safeErrorMessage);
-            errorPropertiesMap.put("message", safeErrorMessage);
-        }
+        String clientMessage = status.is5xxServerError()
+                ? handle5xxError(status, serverRequest.path(), internalErrorMessage, error, exceptionType)
+                : handle4xxError(status, serverRequest.path(), internalErrorMessage, error, exceptionType);
+
+        errorPropertiesMap.put("message", clientMessage);
 
         return ServerResponse.status(status)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -67,8 +69,8 @@ public class GlobalExceptionHandler extends AbstractErrorWebExceptionHandler {
     }
 
     private HttpStatus determineHttpStatus(Throwable error) {
-        if(error instanceof ResponseStatusException responseStatusException) {
-            return HttpStatus.valueOf(responseStatusException.getStatusCode().value());
+        if(error instanceof ResponseStatusException rse) {
+            return HttpStatus.valueOf(rse.getStatusCode().value());
         }
 
         if (error instanceof ConnectException) {
@@ -80,5 +82,28 @@ public class GlobalExceptionHandler extends AbstractErrorWebExceptionHandler {
         }
 
         return HttpStatus.INTERNAL_SERVER_ERROR; //500
+    }
+
+    private String handle5xxError(HttpStatus status, String path, String internalErrorMessage, Throwable error, String exceptionType) {
+        if(status == HttpStatus.SERVICE_UNAVAILABLE) {
+            log.error("SERVICIU INDISPONIBIL [{}] la ruta {} | {}: {}",status.value(), path,exceptionType, internalErrorMessage);
+            return "Serviciul este momentan indisponibil. Vă rugăm să încercați din nou mai târziu.";
+        }
+
+        if (status == HttpStatus.GATEWAY_TIMEOUT) {
+            log.error("GATEWAY TIMEOUT [{}] la ruta {} | {}: {}", status.value(), path, exceptionType, internalErrorMessage);
+            return "Serviciul răspunde prea lent. Vă rugăm să încercați din nou mai târziu.";
+        }
+
+        log.error("SERVER ERROR [{}] la ruta {} | {}: {}", status.value(), path, exceptionType, internalErrorMessage, error);
+        return "Eroare internă de server.";
+    }
+
+    private String handle4xxError(HttpStatus status, String path, String internalErrorMessage, Throwable error, String exceptionType) {
+        log.warn("CLIENT ERROR [{}] la ruta {} | {}: {}", status.value(), path, exceptionType, internalErrorMessage);
+
+        return (error instanceof ResponseStatusException)
+                ? internalErrorMessage
+                :"Eroare la procesarea cererii.";
     }
 }

@@ -7,7 +7,9 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+import org.springframework.web.server.ResponseStatusException;
 
 import javax.crypto.SecretKey;
 
@@ -34,7 +36,21 @@ public class JwtValidator {
     }
 
     public Claims extractAllClaims(final String token) {
-        return validateToken(token).getPayload();
+        Claims claims = validateToken(token).getPayload();
+        String role = claims.get("role", String.class);
+        String userId = claims.getSubject();
+
+        if(userId == null || userId.isBlank()) {
+            log.error("Token validat, dar lipseste Subject (userId). Verifică Auth Service.");
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Eroare internă de server.");
+        }
+
+        if(role == null || role.isBlank()) {
+            log.error("Token validat, dar rol lipsă pentru userId: {}. Verifică emiterea tokenului în Auth Service.", userId);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Eroare internă de server.");
+        }
+
+        return claims;
     }
 
 }

@@ -6,11 +6,12 @@ import com.bido.api_gateway.util.JwtValidator;
 import io.jsonwebtoken.Claims;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
+import org.springframework.web.server.ResponseStatusException;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 @Component
@@ -18,7 +19,6 @@ public class JwtValidationFilter extends AbstractGatewayFilterFactory<JwtValidat
     private final JwtValidator jwtValidator;
     private final JwtErrorHandler jwtErrorHandler;
 
-    @Autowired
     public JwtValidationFilter(JwtValidator jwtValidator, JwtErrorHandler jwtErrorHandler) {
         super(Config.class);
         this.jwtValidator = jwtValidator;
@@ -44,20 +44,29 @@ public class JwtValidationFilter extends AbstractGatewayFilterFactory<JwtValidat
                 return jwtErrorHandler.handleJwtException(exchange, new JwtAuthenticationException("Sesiune invalidă. Vă rugăm să vă reconectați."));
             }
 
-            String token = authHeader.substring(7);
+            String token = authHeader.substring(7).trim();
+
+            if(token.isEmpty()) {
+                log.warn("Securitate - Acces refuzat: Token Bearer absent din header-ul Authorization pe ruta {}", path);
+                return jwtErrorHandler.handleJwtException(exchange,
+                        new JwtAuthenticationException("Nu sunteți autentificat. Vă rugăm să vă logați."));
+            }
 
             try {
                 Claims claims = jwtValidator.extractAllClaims(token);
-                log.info("Token validat cu succes pentru UserID: {} pe ruta {}", claims.getSubject(), path);
-
+                log.debug("Token validat cu succes pentru UserID: {} pe ruta {}", claims.getSubject(), path);
                 exchange.getAttributes().put("authenticatedClaims", claims);
                 return chain.filter(exchange);
+            } catch (ResponseStatusException e) {
+                // 500 — eroare din JwtValidator (bug Auth Service)
+                // propagă la GlobalExceptionHandler, nu la JwtErrorHandler
+                return Mono.error(e);
             } catch (Exception e) {
-                log.error("Securitate - Token invalid sau expirat (respins de validator): {}" , e.getMessage());
-                return jwtErrorHandler.handleJwtException(exchange, new JwtAuthenticationException("Sesiunea a expirat sau este invalidă. Vă rugăm să vă logați din nou."));
+                // Excepții jjwt — token expirat, malformat, semnătură greșită
+                log.warn("Securitate - Token invalid sau expirat (respins de validator): {}" , e.getMessage());
+                return jwtErrorHandler.handleJwtException(exchange,
+                        new JwtAuthenticationException("Sesiunea a expirat sau este invalidă. Vă rugăm să vă logați din nou."));
             }
-
-
         };
     }
 
