@@ -55,7 +55,11 @@ public class GlobalExceptionHandler extends AbstractErrorWebExceptionHandler {
 
         errorPropertiesMap.put("status", status.value());
         errorPropertiesMap.put("error", status.getReasonPhrase());
+
         errorPropertiesMap.remove("requestId");
+        errorPropertiesMap.remove("timestamp");
+        errorPropertiesMap.remove("path");
+        errorPropertiesMap.remove("trace");
 
         String clientMessage = status.is5xxServerError()
                 ? handle5xxError(status, serverRequest.path(), internalErrorMessage, error, exceptionType)

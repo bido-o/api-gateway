@@ -16,7 +16,7 @@ spring:
 
 logging:
   level:
-    org.springframework.cloud.gateway: TRACE
+    org.springframework.cloud.gateway: TRACE #trebuie mutat in application-dev.yaml
 
 jwt:
   secret: ${JWT_SECRET_KEY}
