@@ -3,6 +3,7 @@ package com.bido.api_gateway.filter.route;
 import com.bido.api_gateway.exception.JwtAuthenticationException;
 import com.bido.api_gateway.exception.JwtErrorHandler;
 import com.bido.api_gateway.util.JwtValidator;
+import com.bido.api_gateway.util.RequestUtils;
 import io.jsonwebtoken.Claims;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
@@ -29,7 +30,7 @@ public class JwtValidationFilter extends AbstractGatewayFilterFactory<JwtValidat
     @Override
     public GatewayFilter apply(@NonNull Config config) {
         return (exchange, chain) -> {
-            String path = exchange.getRequest().getURI().getPath();
+            String path = RequestUtils.extractPath(exchange);
             log.debug("Execut JwtValidation pentru ruta: {}", path);
 
             String authHeader = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
