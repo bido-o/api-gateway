@@ -4,6 +4,13 @@ server:
 spring:
   application:
     name: api-gateway
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD}
+
   cloud:
     gateway:
       server:
@@ -13,10 +20,17 @@ spring:
               uri: ${AUTH_SERVICE_URL}
               predicates:
                 - Path=/api/auth/**
+              filters:
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: 3    # 3 tokeni/secundă regenerați
+                    redis-rate-limiter.burstCapacity: 8   # max 8 tokeni
+                    redis-rate-limiter.requestedTokens: 1  # fiecare request consumă 1 token
+                    key-resolver: "#{@ipKeyResolver}"
 
 logging:
   level:
-    org.springframework.cloud.gateway: TRACE #trebuie mutat in application-dev.yaml
+    org.springframework.cloud.gateway: INFO
 
 jwt:
   secret: ${JWT_SECRET_KEY}
