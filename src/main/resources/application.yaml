@@ -28,6 +28,15 @@ spring:
                     redis-rate-limiter.requestedTokens: 1  # fiecare request consumă 1 token
                     key-resolver: "#{@ipKeyResolver}"
 
+management:
+  tracing:
+    sampling:
+      probability: 1.0 #in dev, in prod 0.1
+  endpoints:
+    web:
+      exposure:
+        include: health
+
 logging:
   level:
     org.springframework.cloud.gateway: INFO
