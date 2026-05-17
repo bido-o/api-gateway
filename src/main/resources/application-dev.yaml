@@ -1,0 +1,30 @@
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+
+gateway:
+  downstream:
+    auth-url: ${AUTH_SERVICE_URL:http://localhost:8081}
+  rate-limit:
+    replenish-rate: 3
+    burst-capacity: 8
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+logging:
+  level:
+    com.bido.api_gateway: DEBUG
+    org.springframework.cloud.gateway: INFO
+
+jwt:
+  secret: ${JWT_SECRET_KEY}
