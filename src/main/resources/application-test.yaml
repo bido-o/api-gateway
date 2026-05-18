@@ -15,9 +15,14 @@ gateway:
   downstream:
     # Port izolat pentru teste — niciun serviciu real nu rulează aici
     auth-url: http://localhost:18081
+    profile-url: http://localhost:18082
+    bidding-service-url: http://localhost:18083
   rate-limit:
-    replenish-rate: 1000
-    burst-capacity: 2000
+    auth: &test-limits
+      replenish-rate: 1000
+      burst-capacity: 2000
+    profile: *test-limits
+    bidding-service: *test-limits
 
 management:
   tracing:

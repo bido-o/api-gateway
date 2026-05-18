@@ -22,7 +22,6 @@ public class RateLimitConfig {
     KeyResolver userIdKeyResolver() {
         return exchange ->
                 Mono.justOrEmpty(exchange.getRequest().getHeaders().getFirst("X-User-Id"))
-                        .map(userId -> "user:" + userId)
-                        .defaultIfEmpty("user:anonymous");
+                        .map(userId -> "user:" + userId);
     }
 }

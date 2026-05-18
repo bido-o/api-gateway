@@ -8,9 +8,19 @@ spring:
 gateway:
   downstream:
     auth-url: ${AUTH_SERVICE_URL:http://localhost:8081}
+    profile-url: ${PROFILE_SERVICE_URL:http://localhost:8082}
+    bidding-service-url: ${BIDDING_SERVICE_URL:http://localhost:8083}
   rate-limit:
-    replenish-rate: 3
-    burst-capacity: 8
+    auth:
+      replenish-rate: 3
+      burst-capacity: 8
+    profile:
+      replenish-rate: 20
+      burst-capacity: 50
+    bidding-service:
+      replenish-rate: 30
+      burst-capacity: 100
+
 
 management:
   tracing:

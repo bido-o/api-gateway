@@ -20,10 +20,39 @@ spring:
               filters:
                 - name: RequestRateLimiter
                   args:
-                    redis-rate-limiter.replenishRate: ${gateway.rate-limit.replenish-rate} # tokeni/secundă regenerați
-                    redis-rate-limiter.burstCapacity: ${gateway.rate-limit.burst-capacity} # maximul de tokeni
+                    redis-rate-limiter.replenishRate: ${gateway.rate-limit.auth.replenish-rate} # tokeni/secundă regenerați
+                    redis-rate-limiter.burstCapacity: ${gateway.rate-limit.auth.burst-capacity} # maximul de tokeni
                     redis-rate-limiter.requestedTokens: 1 # fiecare request consumă 1 token
                     key-resolver: "#{@ipKeyResolver}"
+
+            - id: profile-route
+              uri: ${gateway.downstream.profile-url}
+              predicates:
+                - Path=/api/client-profiles/**,/api/supplier-profiles/**
+              filters:
+                - JwtValidationFilter
+                - ContextPropagationFilter
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: ${gateway.rate-limit.profile.replenish-rate}
+                    redis-rate-limiter.burstCapacity: ${gateway.rate-limit.profile.burst-capacity}
+                    redis-rate-limiter.requestedTokens: 1
+                    key-resolver: "#{@userIdKeyResolver}"
+
+            - id: bidding-service-route
+              uri: ${gateway.downstream.bidding-service-url}
+              predicates:
+                - Path=/api/requests/**,/api/offers/**
+              filters:
+                - JwtValidationFilter
+                - ContextPropagationFilter
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: ${gateway.rate-limit.bidding-service.replenish-rate}
+                    redis-rate-limiter.burstCapacity: ${gateway.rate-limit.bidding-service.burst-capacity}
+                    redis-rate-limiter.requestedTokens: 1
+                    key-resolver: "#{@userIdKeyResolver}"
+
 
 management:
   endpoints:
