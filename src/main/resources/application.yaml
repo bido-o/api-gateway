@@ -53,6 +53,20 @@ spring:
                     redis-rate-limiter.requestedTokens: 1
                     key-resolver: "#{@userIdKeyResolver}"
 
+            - id: menu-route
+              uri: ${gateway.downstream.menu-url}
+              predicates:
+                - Path=/api/menu/**
+              filters:
+                - JwtValidationFilter
+                - ContextPropagationFilter
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: ${gateway.rate-limit.menu.replenish-rate}
+                    redis-rate-limiter.burstCapacity: ${gateway.rate-limit.menu.burst-capacity}
+                    redis-rate-limiter.requestedTokens: 1
+                    key-resolver: "#{@userIdKeyResolver}"
+
 
 management:
   endpoints:

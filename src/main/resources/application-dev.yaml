@@ -10,6 +10,7 @@ gateway:
     auth-url: ${AUTH_SERVICE_URL:http://localhost:8080}
     profile-url: ${PROFILE_SERVICE_URL:http://localhost:8080}
     bidding-service-url: ${BIDDING_SERVICE_URL:http://localhost:8080}
+    menu-url: ${MENU_SERVICE_URL:http://localhost:8080}
   rate-limit:
     auth:
       replenish-rate: 3
@@ -20,6 +21,9 @@ gateway:
     bidding-service:
       replenish-rate: 30
       burst-capacity: 100
+    menu:
+      replenish-rate: 25
+      burst-capacity: 80
 
 
 management:
