@@ -85,7 +85,17 @@ spring:
 
 
 management:
+  tracing:
+    sampling:
+      probability: ${tracing.sampling-probability:0.1}
+    export:
+      zipkin:
+        endpoint: ${ZIPKIN_ENDPOINT:http://localhost:9411/api/v2/spans}
   endpoints:
     web:
       exposure:
         include: health
+
+logging:
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
