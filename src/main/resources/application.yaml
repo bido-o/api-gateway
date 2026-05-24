@@ -12,6 +12,22 @@ spring:
     gateway:
       server:
         webflux:
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowedOrigins: ${gateway.cors.allowed-origins}
+                allowedMethods:
+                  - GET
+                  - POST
+                  - PUT
+                  - PATCH
+                  - DELETE
+                  - OPTIONS
+                allowedHeaders:
+                  - Authorization
+                  - Content-Type
+                allowCredentials: true
+                maxAge: 3600
           routes:
             - id: auth-route
               uri: ${gateway.downstream.auth-url}
