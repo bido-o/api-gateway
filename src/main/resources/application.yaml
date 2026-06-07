@@ -58,7 +58,7 @@ spring:
             - id: bidding-service-route
               uri: ${gateway.downstream.bidding-service-url}
               predicates:
-                - Path=/api/requests/**,/api/offers/**
+                - Path=/api/requests/**,/api/offers/**,/api/event-types/**
               filters:
                 - JwtValidationFilter
                 - ContextPropagationFilter
