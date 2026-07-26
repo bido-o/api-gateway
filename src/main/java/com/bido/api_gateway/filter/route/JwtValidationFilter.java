@@ -2,6 +2,7 @@ package com.bido.api_gateway.filter.route;
 
 import com.bido.api_gateway.exception.JwtAuthenticationException;
 import com.bido.api_gateway.exception.JwtErrorHandler;
+import com.bido.api_gateway.security.SuspensionDenylist;
 import com.bido.api_gateway.util.JwtValidator;
 import com.bido.api_gateway.util.RequestUtils;
 import io.jsonwebtoken.Claims;
@@ -10,6 +11,7 @@ import org.jspecify.annotations.NonNull;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
@@ -19,11 +21,14 @@ import reactor.core.publisher.Mono;
 public class JwtValidationFilter extends AbstractGatewayFilterFactory<JwtValidationFilter.Config> {
     private final JwtValidator jwtValidator;
     private final JwtErrorHandler jwtErrorHandler;
+    private final SuspensionDenylist suspensionDenylist;
 
-    public JwtValidationFilter(JwtValidator jwtValidator, JwtErrorHandler jwtErrorHandler) {
+    public JwtValidationFilter(JwtValidator jwtValidator, JwtErrorHandler jwtErrorHandler,
+                               SuspensionDenylist suspensionDenylist) {
         super(Config.class);
         this.jwtValidator = jwtValidator;
         this.jwtErrorHandler = jwtErrorHandler;
+        this.suspensionDenylist = suspensionDenylist;
     }
 
     @NonNull
@@ -53,11 +58,9 @@ public class JwtValidationFilter extends AbstractGatewayFilterFactory<JwtValidat
                         new JwtAuthenticationException("Nu sunteți autentificat. Vă rugăm să vă logați."));
             }
 
+            final Claims claims;
             try {
-                Claims claims = jwtValidator.extractAllClaims(token);
-                log.debug("Token validat cu succes pentru UserID: {} pe ruta {}", claims.getSubject(), path);
-                exchange.getAttributes().put("authenticatedClaims", claims);
-                return chain.filter(exchange);
+                claims = jwtValidator.extractAllClaims(token);
             } catch (ResponseStatusException e) {
                 // 500 — eroare din JwtValidator (bug Auth Service)
                 // propagă la GlobalExceptionHandler, nu la JwtErrorHandler
@@ -68,6 +71,23 @@ public class JwtValidationFilter extends AbstractGatewayFilterFactory<JwtValidat
                 return jwtErrorHandler.handleJwtException(exchange,
                         new JwtAuthenticationException("Sesiunea a expirat sau este invalidă. Vă rugăm să vă logați din nou."));
             }
+
+            String userId = claims.getSubject();
+            log.debug("Token validat cu succes pentru UserID: {} pe ruta {}", userId, path);
+
+            // Revocare instant: user suspendat în denylist (populat de Auth Service) → 403.
+            return suspensionDenylist.isSuspended(userId)
+                    .flatMap(suspended -> {
+                        if (suspended) {
+                            log.warn("Securitate - Acces refuzat: cont suspendat pentru UserID: {} pe ruta {}", userId, path);
+                            return jwtErrorHandler.handleJwtException(exchange,
+                                                                        new JwtAuthenticationException(HttpStatus.FORBIDDEN,
+                                                                        SuspensionDenylist.SUSPENDED_CODE,
+                                                                        "Contul tău a fost suspendat."));
+                        }
+                        exchange.getAttributes().put("authenticatedClaims", claims);
+                        return chain.filter(exchange);
+                    });
         };
     }
 

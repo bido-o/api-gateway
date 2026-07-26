@@ -2,6 +2,7 @@ package com.bido.api_gateway.filter.route;
 
 import com.bido.api_gateway.exception.JwtAuthenticationException;
 import com.bido.api_gateway.exception.JwtErrorHandler;
+import com.bido.api_gateway.security.SuspensionDenylist;
 import com.bido.api_gateway.util.JwtValidator;
 import io.jsonwebtoken.Claims;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,13 +39,16 @@ class JwtValidationFilterTest {
     private JwtErrorHandler jwtErrorHandler;
 
     @Mock
+    private SuspensionDenylist suspensionDenylist;
+
+    @Mock
     private GatewayFilterChain chain;
 
     private GatewayFilter filter;
 
     @BeforeEach
     void setUp() {
-        filter = new JwtValidationFilter(jwtValidator, jwtErrorHandler)
+        filter = new JwtValidationFilter(jwtValidator, jwtErrorHandler, suspensionDenylist)
                 .apply(new JwtValidationFilter.Config());
     }
 
@@ -118,6 +122,7 @@ class JwtValidationFilterTest {
         Claims claims = mock(Claims.class);
         when(claims.getSubject()).thenReturn("user-123");
         when(jwtValidator.extractAllClaims("good-token")).thenReturn(claims);
+        when(suspensionDenylist.isSuspended("user-123")).thenReturn(Mono.just(false));
         when(chain.filter(exchange)).thenReturn(Mono.empty());
 
         StepVerifier.create(filter.filter(exchange, chain)).verifyComplete();
@@ -125,6 +130,22 @@ class JwtValidationFilterTest {
         verify(chain).filter(exchange);
         assertThat(exchange.getAttributes().get("authenticatedClaims")).isSameAs(claims);
         verifyNoInteractions(jwtErrorHandler);
+    }
+
+    @Test
+    void suspendedUser_delegatesToErrorHandlerAndSkipsChain() {
+        ServerWebExchange exchange = exchangeWithAuth("Bearer good-token");
+        Claims claims = mock(Claims.class);
+        when(claims.getSubject()).thenReturn("user-123");
+        when(jwtValidator.extractAllClaims("good-token")).thenReturn(claims);
+        when(suspensionDenylist.isSuspended("user-123")).thenReturn(Mono.just(true));
+        when(jwtErrorHandler.handleJwtException(eq(exchange), any(JwtAuthenticationException.class)))
+                .thenReturn(Mono.empty());
+
+        StepVerifier.create(filter.filter(exchange, chain)).verifyComplete();
+
+        verify(jwtErrorHandler).handleJwtException(eq(exchange), any(JwtAuthenticationException.class));
+        verifyNoInteractions(chain);
     }
 
     @Test

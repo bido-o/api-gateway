@@ -29,6 +29,24 @@ spring:
                 allowCredentials: true
                 maxAge: 3600
           routes:
+            # Rute de admin — PROTEJATE. Trebuie definite ÎNAINTEA lui auth-route,
+            # altfel /api/auth/admin/** s-ar potrivi pe ruta publică și X-User-Role
+            # ar putea fi spoof-uit. JwtValidationFilter + ContextPropagationFilter
+            # șterg header-ele spoof-uite și le setează din claims-urile JWT.
+            - id: auth-admin-route
+              uri: ${gateway.downstream.auth-url}
+              predicates:
+                - Path=/api/auth/admin/**
+              filters:
+                - JwtValidationFilter
+                - ContextPropagationFilter
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: ${gateway.rate-limit.auth.replenish-rate}
+                    redis-rate-limiter.burstCapacity: ${gateway.rate-limit.auth.burst-capacity}
+                    redis-rate-limiter.requestedTokens: 1
+                    key-resolver: "#{@userIdKeyResolver}"
+
             - id: auth-route
               uri: ${gateway.downstream.auth-url}
               predicates:
@@ -69,10 +87,10 @@ spring:
                     redis-rate-limiter.requestedTokens: 1
                     key-resolver: "#{@userIdKeyResolver}"
 
-            - id: menu-route
+            - id: menu-my-route
               uri: ${gateway.downstream.menu-url}
               predicates:
-                - Path=/api/menu/**
+                - Path=/api/menu/items/my
               filters:
                 - JwtValidationFilter
                 - ContextPropagationFilter
@@ -82,6 +100,34 @@ spring:
                     redis-rate-limiter.burstCapacity: ${gateway.rate-limit.menu.burst-capacity}
                     redis-rate-limiter.requestedTokens: 1
                     key-resolver: "#{@userIdKeyResolver}"
+
+            - id: menu-write-route
+              uri: ${gateway.downstream.menu-url}
+              predicates:
+                - Path=/api/menu/**
+                - Method=POST,PUT,PATCH,DELETE
+              filters:
+                - JwtValidationFilter
+                - ContextPropagationFilter
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: ${gateway.rate-limit.menu.replenish-rate}
+                    redis-rate-limiter.burstCapacity: ${gateway.rate-limit.menu.burst-capacity}
+                    redis-rate-limiter.requestedTokens: 1
+                    key-resolver: "#{@userIdKeyResolver}"
+
+            - id: menu-read-route
+              uri: ${gateway.downstream.menu-url}
+              predicates:
+                - Path=/api/menu/**
+                - Method=GET
+              filters:
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: ${gateway.rate-limit.menu.replenish-rate}
+                    redis-rate-limiter.burstCapacity: ${gateway.rate-limit.menu.burst-capacity}
+                    redis-rate-limiter.requestedTokens: 1
+                    key-resolver: "#{@ipKeyResolver}"
 
 
 management:

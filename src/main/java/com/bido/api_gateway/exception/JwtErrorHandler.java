@@ -20,10 +20,12 @@ public class JwtErrorHandler {
 
         HttpStatus httpStatus;
         String errorMessage;
+        String code = null;
 
         if(e instanceof JwtAuthenticationException jwtException){
             httpStatus = jwtException.getHttpStatus();
             errorMessage = jwtException.getMessage();
+            code = jwtException.getCode();
         } else {
             httpStatus = HttpStatus.UNAUTHORIZED;
             errorMessage = "Eroare de autentificare.";
@@ -34,8 +36,12 @@ public class JwtErrorHandler {
         exchange.getResponse().setStatusCode(httpStatus);
         exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
 
+        // `code` apare doar când există (ex. ACCOUNT_SUSPENDED), ca frontend-ul să
+        // poată distinge suspendarea de alte erori cu același status.
+        String codeField = (code != null) ? String.format("\"code\":\"%s\",", code) : "";
         String jsonFormat = String.format(
-                "{\"status\":%d,\"error\":\"%s\",\"message\":\"%s\"}",
+                "{%s\"status\":%d,\"error\":\"%s\",\"message\":\"%s\"}",
+                codeField,
                 httpStatus.value(),
                 httpStatus.getReasonPhrase(),
                 errorMessage
