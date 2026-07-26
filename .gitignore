@@ -35,3 +35,5 @@ build/
 # Logging files
 /logs/
 *.log
+/src/main/.claude/worktrees/bold-meitner-3ad7b8/
+/src/main/.claude/worktrees/heuristic-hugle-e75b5b/
